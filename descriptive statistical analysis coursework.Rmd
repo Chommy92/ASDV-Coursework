@@ -1,0 +1,218 @@
+---
+title: "Descriptive Statistical Analysis"
+output: html_notebook
+---
+
+```{r}
+library(ggplot2)
+library(qqplotr)
+library(tidyverse)
+library(RVAideMemoire)
+library(Hmisc)
+```
+
+
+```{r}
+df <- read.csv("Gender_stats.csv", header =TRUE)
+```
+
+
+
+```{r}
+head(df)
+```
+
+#DISPLAYING COLUMN NAMES
+```{r}
+names(df)
+```
+
+# RENAMING ALL COLUMNS NAMES
+```{r}
+colnames(df) <- c("Year", "Country", "Female_LifeExpectancyAtBirth", "Male_LifeExpectancyAtBirth", "Female_Population(30-34)", "Male_Population(30-34)", "Male_Population(15-19)", "Female_Population(15-19)")
+```
+
+#DISPLAYING ALL COLNAMES After the change of names
+
+```{r}
+colnames(df)
+```
+# to display the first six rowws
+```{r}
+head(df)
+```
+
+#to display the last six rows of dataframe
+```{r}
+tail(df)
+```
+
+```{r}
+str(df)
+```
+# discriptive statistical analysis of each column grouped by country
+```{r}
+by(df, df$Country, summary)
+```
+
+#CALCULATING THE STANDARD DEVIATION
+
+```{r}
+# using lapply() function for standard deviation of all the columns at once
+
+lapply(df[, 3:8], sd)
+```
+
+# To calculate the mode Female_lifeExpectancyAtBirth
+```{r}
+tab <- table(df$Female_LifeExpectancyAtBirth) # number of occurrences for each unique value
+sort(tab, decreasing = TRUE) # sort highest to lowest
+```
+The mode of the variable Female_LifeExpectancyAtBirth is thus 81.2.
+
+# to calculate the mode of Male_LifeExpectancyAtBirth
+```{r}
+tab <- table(df$Male_LifeExpectancyAtBirth) # number of occurrences for each unique value
+sort(tab, decreasing = TRUE)
+```
+The mode of Male_LifeExpectancyAtBirth is thus 76.3
+
+# to calculate mode of Female population (30-34)
+```{r}
+tab <- table(df$`Female_Population(30-34)`) # number of occurrences for each unique value
+sort(tab, decreasing = TRUE) # sort from highest to lowest
+```
+
+# to calculate mode of Male population (30-14)
+```{r}
+tab <- table(df$`Male_Population(30-34)`) # number of occurrences for each unique value
+sort(tab, decreasing = TRUE)
+```
+
+# to calculate mode of Male ppopulation (15-19)
+```{r}
+tab <- table(df$`Male_Population(15-19)`) # number of occurrences for each unique value
+sort(tab, decreasing = TRUE) # sort highest to lowest
+```
+
+# to calculate the mode of Female population (15-19)
+```{r}
+tab <- table(df$`Female_Population(15-19)`) # number of occurrences for each unique value
+sort(tab, decreasing = TRUE)
+```
+
+# CALCULATING THE SKEWNESS and KURTOSIS
+
+```{r}
+library(moments)
+```
+
+# CALCULATING THE SKEWNESS
+```{r}
+skewness(df$Female_LifeExpectancyAtBirth)
+```
+```{r}
+skewness(df$Male_LifeExpectancyAtBirth)
+```
+
+```{r}
+skewness(df$`Female_Population(30-34)`)
+```
+
+```{r}
+skewness(df$`Male_Population(30-34)`)
+```
+```{r}
+skewness(df$`Male_Population(15-19)`)
+```
+```{r}
+skewness(df$`Female_Population(15-19)`)
+```
+```{r}
+skewness(df$Year)
+```
+
+
+
+# CALCULATING THE KURTOSIS
+```{r}
+kurtosis(df$Female_LifeExpectancyAtBirth)
+```
+
+```{r}
+kurtosis(df$Male_LifeExpectancyAtBirth)
+```
+
+```{r}
+kurtosis(df$`Female_Population(30-34)`)
+```
+
+```{r}
+kurtosis(df$`Male_Population(30-34)`)
+```
+```{r}
+kurtosis(df$`Male_Population(15-19)`)
+```
+
+```{r}
+kurtosis(df$`Female_Population(15-19)`)
+```
+
+
+```{r}
+kurtosis(df$Year)
+```
+
+
+#CORELATION ANALYSIS
+
+```{r}
+# before doing correlation analysis, i have to remove the categorical varaible from the dataset.
+
+new_df <- df %>% select(-Country, -Year)
+```
+
+```{r}
+head(new_df)
+```
+
+
+
+# THE COR() FUNCTION ALLOWS US TO COMPUTE CORRELATION COEFFICIENT FOR SEVERAL PAIRS OF VARIABLES
+
+```{r}
+# correlation for all the variables
+round(cor(new_df), 
+      digits = 2) # rounded to 2 decimals
+```
+
+
+
+#IMPROVED CORRELATION MATRIX
+
+```{r}
+library(corrplot)
+```
+
+
+```{r}
+corrplot(cor(new_df),
+  method = "number",
+  type = "upper" # show only upper side
+)
+```
+
+#CORRELATION TEST FOR SEVERAL VARIABLES
+
+*** Similar to the correlation matrix used to compute correlation for several pairs of variables, the rcorr() function (from the {Hmisc} package) allows to compute p-values of the correlation test for several pairs of variables at once. Applied to our dataset, we have:
+
+```{r}
+# correlation tests for whole dataset 
+res <- rcorr(as.matrix(new_df)) # rcorr() accepts matrices only
+
+# display p-values (rounded to 3 decimals)
+round(res$P, 3)
+```
+
+
+

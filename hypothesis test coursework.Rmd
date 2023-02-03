@@ -1,0 +1,211 @@
+---
+title: "HYPOTHESIS TEST"
+output: html_notebook
+---
+
+```{r}
+library(ggplot2)
+library(qqplotr)
+library(multcomp)
+library(tidyverse)
+library(RVAideMemoire)
+library(car)
+library(report)
+```
+```{r}
+df <- read.csv("Gender_stats.csv", header =TRUE)
+```
+
+
+```{r}
+head(df)
+```
+
+#DISPLAYING COLUMN NAMES
+```{r}
+names(df)
+```
+
+# RENAMING ALL COLUMNS NAMES
+```{r}
+colnames(df) <- c("Year", "Country", "Female_LifeExpectancyAtBirth", "Male_LifeExpectancyAtBirth", "Female_Population(30-34)", "Male_Population(30-34)", "Male_Population(15-19)", "Female_Population(15-19)")
+```
+
+#DISPLAYING ALL COLNAMES
+
+```{r}
+colnames(df)
+```
+
+```{r}
+head(df)
+```
+
+```{r}
+summary(df)
+```
+
+# ONE WAY ANOVA TEST
+
+#ASSUMPTION 1,  ASSUPTION TWO & THREE
+```{r}
+#LETS SELECT A DEPENDENT VARIABLE(NUMERICAL)  AND INDEPENDENT VARIABLE (CATEGORICAL)FROM THE DATASET
+
+genderStats <- df %>% select(Country, Male_LifeExpectancyAtBirth)
+genderStats
+```
+```{r}
+genderStats <- genderStats[genderStats$Country == "Afghanistan" | genderStats$Country == "Chad" | genderStats$Country == "Ethiopia" | genderStats$Country == "Canada" | genderStats$Country == "India" | genderStats$Country == "China", ]
+head(genderStats)
+```
+
+```{r}
+genderStats$Country <- as.factor(genderStats$Country)
+```
+
+```{r}
+summary(genderStats)
+```
+
+
+# ASSUMPTION 4: CHECKING FOR OUTLIERS
+
+```{r}
+# we will draw a boxplot to check this
+
+boxplot(Male_LifeExpectancyAtBirth ~ Country , data=genderStats, 
+        names=c("Canada", "China", "Ethiopia", "Chad", "Afghanistan", "India"),
+        xlab="Countries", 
+        ylab="Population",
+        main="Male Life Expectancy At Birth For Countries")
+```
+There is no outlier.
+
+
+
+#ASSUMPTION 5: TO CHECK FOR NORMALITY. WE WILL USE THE SHAPIRO-WILK() TEST
+
+H0: THE VARIABLE FOLLOWS A NORMAL DISTRIBUTION
+
+H1: THE VARIABLE DOES NOT FOLLOW A NORMAL DISTRIBUTIONN
+
+```{r}
+#I WILL USE A PACKAGE CALLED RVAideMemoire
+
+byf.shapiro(Male_LifeExpectancyAtBirth ~ Country, data=genderStats)
+```
+all the p-values are greater than 0.05. therefore we wont reject the null hypothesis.
+
+
+#ASSUPTION 6: TO CHECK FOR HOMOGENEITY IN OF VARIANCES IN TWO CATEGORIES OF THE COUNTRY COLUMNS. I WILL USE BARTLETT TEST FROM THE DEFAULT PACKAGE, STATS
+
+```{r}
+bartlett.test(Male_LifeExpectancyAtBirth ~ Country, data=genderStats)
+```
+From the output, the p-value is 0.00018 and it is less than the significance level of 0.05. this means that the male life expectancy at birth of all the countries are are not equal. so i will reject the Null Hypothesis and accept the alternative hypothesis.
+
+NOW THAT WE HAVE CHECKED ALL THE ASSUMPTIONS AND THE DATA DIDNT PASS THE HOMOGENEITY TEST. THE FINAL STEP IS TO CONDUCT THE ONE WAY ANOVA TEST
+
+# welch ANOVA TEST (1ST METHOD)
+```{r}
+oneway.test(Male_LifeExpectancyAtBirth ~ Country, 
+            data=genderStats, 
+            var.equal = FALSE)
+```
+
+# WELCH ANOVA (2ND METHOD): this method is useful for post-hoc test
+```{r}
+welch_test <- aov(Male_LifeExpectancyAtBirth ~ Country,
+  data = genderStats,
+)
+
+summary(welch_test)
+```
+#Tukey HSD POST-HOC test
+```{r}
+
+
+# Tukey HSD test:
+
+post_test <- glht(welch_test,
+  linfct = mcp(Country = "Tukey")
+)
+
+summary(post_test)
+```
+
+
+
+# Independent Two Sample T-Test
+This makes a fewer assumptions about the data
+
+```{r}
+head(df)
+```
+
+#selecting the response and Predictor variable
+
+```{r}
+df <- df %>% select(Country, Female_LifeExpectancyAtBirth)
+df
+```
+
+#selecting predictor variable(categorical)
+
+```{r}
+df_country <- df[df$Country == "United Kingdom" | df$Country == "Nigeria", ]
+df_country
+```
+```{r}
+by(df_country, df_country$Country, summary)
+```
+# to convert country to factor
+```{r}
+df_country$Country <- as.factor(df_country$Country)
+```
+
+```{r}
+by(df_country, df_country$Country, summary)
+```
+```{r}
+ggplot(df_country) +
+  aes(x = Country, y = Female_LifeExpectancyAtBirth) +
+  geom_boxplot(fill = "#0c4c8a") +
+  theme_minimal()
+```
+
+
+```{r}
+hist(subset(df_country, Country == "United Kingdom")$Female_LifeExpectancyAtBirth,
+  main = "Female_LifeExpectancyAtBirth population in United Kingdom",
+  xlab = "Female_LifeExpectancyAtBirth",
+  col = "coral"
+)
+```
+
+
+```{r}
+hist(subset(df_country, Country == "Nigeria")$Female_LifeExpectancyAtBirth,
+  main = "Female_LifeExpectancyAtBirth for Nigeria",
+  xlab = "Female_LifeExpectancyAtBirth",
+  col = "coral"
+)
+```
+
+```{r}
+byf.shapiro(Female_LifeExpectancyAtBirth ~ Country, df_country)
+```
+
+
+```{r}
+x <- t.test(Female_LifeExpectancyAtBirth ~ Country, data = df_country)
+x
+```
+```{r}
+report(x)
+```
+
+
+
+
+

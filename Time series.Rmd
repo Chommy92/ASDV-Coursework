@@ -1,0 +1,240 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+
+```{r}
+library(tidyverse)
+library(forecast)
+library(TTR)
+library(tseries)
+
+```
+
+
+
+```{r}
+df = read.csv("Gender_stats.csv")
+```
+
+```{r}
+head(df)
+```
+
+```{r}
+colnames(df) <- c("Date", "Country", "Female_LifeExpectancyAtBirth", "Male_LifeExpectancyAtBirth", "Female_Population(30-34)", "Male_Population(30-34)", "Male_Population(15-19)", "Female_Population(15-19)")
+```
+
+```{r}
+colnames(df)
+```
+
+```{r}
+df <- df %>% select(Date, Male_LifeExpectancyAtBirth)
+```
+
+```{r}
+head(df)
+```
+
+```{r}
+df$Male_LifeExpectancyAtBirth <- round(df$Male_LifeExpectancyAtBirth,digits = 1)
+```
+
+```{r}
+head(df)
+```
+```{r}
+class(df)
+```
+
+# to convert to timeseries
+```{r}
+gendertime <- ts(df$Male_LifeExpectancyAtBirth, start = min(df$Date), end = max(df$Date), frequency = 1)
+```
+
+```{r}
+class(gendertime)
+```
+```{r}
+plot.ts(gendertime)
+```
+```{r}
+#gendertime_smooth <- SMA(gendertime, n = 3)
+```
+
+```{r}
+#plot.ts(gendertime_smooth)
+```
+
+# To Use Holt's Exponential smoothing to fit apredictive model for female life expectancy at birth
+
+```{r}
+gendertime_smoothforecast <- HoltWinters(gendertime, gamma = FALSE)
+gendertime_smoothforecast
+```
+```{r}
+plot(gendertime_smoothforecast)
+```
+```{r}
+gendertime_smoothforecast1 <- forecast(gendertime_smoothforecast, h =10)
+gendertime_smoothforecast1
+```
+```{r}
+plot(gendertime_smoothforecast1)
+```
+```{r}
+acf(gendertime_smoothforecast1$residuals, lag.max = 10, na.action = na.pass)
+```
+```{r}
+Box.test(gendertime_smoothforecast1$residuals, lag = 3, type ="Ljung-Box")
+```
+```{r}
+plot.ts(gendertime_smoothforecast1$residuals)
+```
+```{r}
+gendertime_smoothforecast1$residuals <-
+gendertime_smoothforecast1$residuals[!is.na(gendertime_smoothforecast1$residual)]
+```
+
+```{r}
+plotForecastErrors <- function(forecasterrors)
+{
+ # make a histogram of the forecast errors:
+ mybinsize <- IQR(forecasterrors)/4 
+ mysd <- sd(forecasterrors)
+ mymin <- min(forecasterrors) - mysd*5 
+ mymax <- max(forecasterrors) + mysd*3
+ # generate normally distributed data with mean 0 and standard deviation mysd
+ mynorm <- rnorm(10000, mean=0, sd=mysd)
+ mymin2 <- min(mynorm)
+ mymax2 <- max(mynorm)
+ if (mymin2 < mymin) { mymin <- mymin2 }
+ if (mymax2 > mymax) { mymax <- mymax2 }
+ # make a red histogram of the forecast errors, with the normally distributed data overlaid:
+ mybins <- seq(mymin, mymax, mybinsize)
+ hist(forecasterrors, col="red", freq=FALSE, breaks=mybins)
+ # freq=FALSE ensures the area under the histogram = 1
+ # generate normally distributed data with mean 0 and standard deviation mysd
+ myhist <- hist(mynorm, plot=FALSE, breaks=mybins)
+ # plot the normal curve as a blue line on top of the histogram of forecast errors:
+ points(myhist$mids, myhist$density, type="l", col="blue", lwd=2)
+}
+```
+
+```{r}
+plotForecastErrors(gendertime_smoothforecast1$residuals)
+```
+
+
+
+# ARIMA MODEL
+
+
+```{r}
+plot.ts(gendertime)
+```
+
+
+#to check for auto correlation
+```{r}
+acf(gendertime, na.action = na.pass, lag.max = 10)
+```
+#
+```{r}
+pacf(gendertime, na.action = na.pass, lag.max = 10)
+```
+
+```{r}
+adf.test(gendertime)
+```
+
+selecting the appropriate arima model
+
+```{r}
+gendermodel <- auto.arima(gendertime, ic = "aic", trace = TRUE)
+gendermodel
+```
+
+```{r}
+acf(ts(gendermodel$residuals))
+```
+```{r}
+pacf(ts(gendermodel$residuals))
+```
+
+
+
+# to do a forcast of 10 years in 4 quarters at 95% confidence interval
+
+```{r}
+genderforcast <- forecast(gendermodel, h =10)
+genderforcast
+```
+
+
+```{r}
+plot(genderforcast)
+```
+
+```{r}
+acf(genderforcast$residuals, na.action = na.pass, lag.max = 10)
+```
+
+
+#to validate forcast
+```{r}
+Box.test(genderforcast$residuals, lag = 5, type = "Ljung-Box")
+```
+```{r}
+Box.test(genderforcast$residuals, lag = 8, type = "Ljung-Box")
+```
+#to investigate whether forecast error are normally distributed with mean 0 and constant variance, i will make a timeplot and histogram
+
+```{r}
+plot.ts(genderforcast$residuals)
+ 
+```
+
+
+```{r}
+plotForecastErrors <- function(forecasterrors)
+{
+ # make a histogram of the forecast errors:
+ mybinsize <- IQR(forecasterrors)/4 
+ mysd <- sd(forecasterrors)
+ mymin <- min(forecasterrors) - mysd*5 
+ mymax <- max(forecasterrors) + mysd*3
+ # generate normally distributed data with mean 0 and standard deviation mysd
+ mynorm <- rnorm(10000, mean=0, sd=mysd)
+ mymin2 <- min(mynorm)
+ mymax2 <- max(mynorm)
+ if (mymin2 < mymin) { mymin <- mymin2 }
+ if (mymax2 > mymax) { mymax <- mymax2 }
+ # make a red histogram of the forecast errors, with the normally distributed data overlaid:
+ mybins <- seq(mymin, mymax, mybinsize)
+ hist(forecasterrors, col="red", freq=FALSE, breaks=mybins)
+ # freq=FALSE ensures the area under the histogram = 1
+ # generate normally distributed data with mean 0 and standard deviation mysd
+ myhist <- hist(mynorm, plot=FALSE, breaks=mybins)
+ # plot the normal curve as a blue line on top of the histogram of forecast errors:
+ points(myhist$mids, myhist$density, type="l", col="blue", lwd=2)
+}
+```
+
+
+```{r}
+genderforcast$residuals <-
+genderforcast$residuals[!is.na(genderforcast$residuals)]
+```
+
+
+```{r}
+plotForecastErrors(genderforcast$residuals)
+```
+

@@ -1,0 +1,212 @@
+---
+title: "Simple Linear Regression"
+output: html_notebook
+---
+
+```{r}
+library(ggplot2)
+library(qqplotr)
+library(tidyverse)
+library(RVAideMemoire)
+library(performance)
+library(see)
+library(car)
+library(car)
+```
+
+```{r}
+df <- read.csv("Gender_stats.csv", header =TRUE)
+```
+
+
+```{r}
+head(df)
+```
+
+#DISPLAYING COLUMN NAMES
+```{r}
+names(df)
+```
+
+# RENAMING ALL COLUMNS NAMES
+```{r}
+colnames(df) <- c("Year", "Country", "Female_LifeExpectancyAtBirth", "Male_LifeExpectancyAtBirth", "Female_Population(30-34)", "Male_Population(30-34)", "Male_Population(15-19)", "Female_Population(15-19)")
+```
+
+#DISPLAYING ALL COLNAMES
+
+```{r}
+colnames(df)
+```
+
+```{r}
+head(df)
+```
+
+```{r}
+summary(df)
+```
+
+# seleting the numerical variables
+```{r}
+df_model <- df %>% select(-Year, -Country)
+```
+
+```{r}
+head(df_model)
+```
+
+
+```{r}
+# correlation between all numerical variables
+
+round(cor(df_model), 
+      digits = 3)
+```
+```{r}
+library(corrplot)
+```
+
+
+```{r}
+# to visualize it on a graph
+
+corrplot(cor(df_model),
+         method = "number",
+         type = "upper")
+```
+the correlation between Female_Population(30-40) and Male_Population(15-19) is high (0.96)
+
+#formular
+Y = Female_Population(30-34)
+X1 = Male_Population(15-19)
+
+
+#checking for normality
+```{r}
+shapiro.test(df_model$`Female_Population(30-34)`)
+```
+
+```{r}
+shapiro.test(df_model$`Male_Population(15-19)`)
+```
+```{r}
+shapiro.test(df_model$Female_LifeExpectancyAtBirth)
+```
+
+# Log Transformation
+```{r}
+df_model$`Female_Population(30-34)` <- log10(df_model$`Female_Population(30-34)`)
+```
+
+```{r}
+shapiro.test(df_model$`Female_Population(30-34)`)
+```
+```{r}
+df_model$`Male_Population(15-19)` <- log10(df_model$`Male_Population(15-19)`)
+```
+
+```{r}
+shapiro.test(df_model$`Male_Population(15-19)`)
+```
+```{r}
+df_model$Female_LifeExpectancyAtBirth <- log10(df_model$Female_LifeExpectancyAtBirth)
+```
+
+```{r}
+shapiro.test(df_model$Female_LifeExpectancyAtBirth)
+```
+```{r}
+df_model$Male_LifeExpectancyAtBirth <- log10(df_model$Male_LifeExpectancyAtBirth)
+```
+
+```{r}
+shapiro.test(df_model$Male_LifeExpectancyAtBirth)
+```
+
+
+so lets try and fit a SLR between Female_Population(30-34) and Female_Population(15-19)
+```{r}
+s_model_1 <- lm(`Female_Population(30-34)`~ `Male_Population(15-19)`, df_model)
+```
+```{r}
+summary.lm(s_model_1)
+```
+
+```{r}
+library(report)
+```
+
+```{r}
+report(s_model_1)
+```
+
+
+```{r}
+plot(`Female_Population(30-34)` ~ `Male_Population(15-19)` , df_model,
+     col = "blue",
+     main = "Regression: Female_Population(30-34) & Male_Population(15-19)",
+     xlab = "Male_Population(15-19)",
+     ylab = "Female_Population(30-34)")
+
+```
+```{r}
+plot(`Female_Population(30-34)` ~ `Male_Population(15-19)` , df_model,
+     col = "blue",
+     main = "Regression: Female_Population(30-34) & Male_Population(15-19)",
+     xlab = "Male_Population(15-19)",
+     ylab = "Female_Population(30-34)")
+abline(s_model_1, col = "red")
+```
+
+
+```{r}
+plot(s_model_1, 1)
+```
+
+
+```{r}
+plot(s_model_1, 2)
+```
+
+```{r}
+plot(s_model_1, 3)
+```
+
+#Multiple Linear Regression
+
+```{r}
+corrplot(cor(df_model))
+```
+#Formular
+Y = Female_Population(30-34)
+X1 = Male_Population(15-19)
+X2 = Female_LifeExpectancyAtBirth
+
+
+```{r}
+model_2 <- lm(`Female_Population(30-34)`~  `Male_Population(15-19)` + Female_LifeExpectancyAtBirth, df_model) 
+```
+
+
+```{r}
+summary(model_2)
+```
+
+#checking whether the fitted model meets the MLR assumptions
+
+i will use check_model() from {performance} package to test the assumptions at once.
+
+
+```{r}
+check_model(model_2)
+```
+
+```{r}
+vif(model_2)
+```
+
+
+
+
+
